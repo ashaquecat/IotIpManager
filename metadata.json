@@ -1,0 +1,5 @@
+{
+  "name": "IoT Terminal IP Pool Management",
+  "description": "Manage IoT terminal IP pools, monitor status, and automate account creation with Excel export.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "IPPool": {
+      "title": "IP Pool",
+      "description": "Configuration for IoT terminal IP pools",
+      "type": "object",
+      "properties": {
+        "startIP": { "type": "string", "description": "Starting IP address" },
+        "endIP": { "type": "string", "description": "Ending IP address" },
+        "gatewayIP": { "type": "string", "description": "Gateway IP address" },
+        "subnetMask": { "type": "string", "description": "Subnet mask" },
+        "ouId": { "type": "string", "description": "Organization Unit ID" },
+        "remarks": { "type": "string", "description": "Additional remarks" },
+        "totalCount": { "type": "number", "description": "Total usable IPs in the pool" },
+        "usedCount": { "type": "number", "description": "Number of IPs currently in use" }
+      },
+      "required": ["startIP", "endIP", "gatewayIP", "subnetMask", "ouId"]
+    },
+    "IPAddress": {
+      "title": "IP Address",
+      "description": "Individual IP status within a pool",
+      "type": "object",
+      "properties": {
+        "ip": { "type": "string", "description": "IP address" },
+        "poolId": { "type": "string", "description": "Reference to IPPool" },
+        "status": { "type": "string", "enum": ["used", "unused"], "description": "Current status of the IP" },
+        "ouId": { "type": "string", "description": "Organization Unit ID" },
+        "accountId": { "type": "string", "description": "Reference to TerminalAccount if used" }
+      },
+      "required": ["ip", "poolId", "status", "ouId"]
+    },
+    "TerminalAccount": {
+      "title": "Terminal Account",
+      "description": "IoT terminal account information",
+      "type": "object",
+      "properties": {
+        "accountName": { "type": "string", "description": "Account name (yzd_IP)" },
+        "ip": { "type": "string", "description": "Assigned IP address" },
+        "mac": { "type": "string", "description": "MAC address (optional)" },
+        "ouId": { "type": "string", "description": "Organization Unit ID" },
+        "applicant": { "type": "string", "description": "Person applying for the account" },
+        "safetyOfficer": { "type": "string", "description": "Person responsible for safety" },
+        "remarks": { "type": "string", "description": "Additional remarks" },
+        "password": { "type": "string", "description": "Randomly generated password" }
+      },
+      "required": ["accountName", "ip", "ouId", "password"]
+    },
+    "OrganizationUnit": {
+      "title": "Organization Unit",
+      "description": "Organization units for binding IP pools",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "OU name" },
+        "code": { "type": "string", "description": "OU code" }
+      },
+      "required": ["name", "code"]
+    }
+  },
+  "firestore": {
+    "/ipPools": { "schema": "IPPool", "description": "Collection of IP pools" },
+    "/ipAddresses": { "schema": "IPAddress", "description": "Collection of individual IP statuses" },
+    "/terminalAccounts": { "schema": "TerminalAccount", "description": "Collection of terminal accounts" },
+    "/organizationUnits": { "schema": "OrganizationUnit", "description": "Collection of organization units" }
+  }
+}

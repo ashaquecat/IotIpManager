@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: ipPools
+    // Fields: startIP, endIP, gatewayIP, subnetMask, ouId, remarks, totalCount, usedCount
+    //
+    // Collection: ipAddresses
+    // Fields: ip, poolId, status, ouId, accountId
+    //
+    // Collection: terminalAccounts
+    // Fields: accountName, ip, mac, ouId, applicant, safetyOfficer, remarks, password
+    //
+    // Collection: organizationUnits
+    // Fields: name, code
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "catchinoip@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /ipPools/{poolId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /ipAddresses/{addressId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /terminalAccounts/{accountId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /organizationUnits/{ouId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}

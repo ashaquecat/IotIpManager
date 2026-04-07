@@ -6,7 +6,7 @@ import { calculateUsableIPs } from '../utils/ipUtils';
 import { Plus, Trash2, Edit2, Search, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Modal } from './Modal';
 
-export function IPPoolManager() {
+export function IPPoolManager({ onViewStatus }: { onViewStatus?: (id: string) => void }) {
   const [pools, setPools] = useState<IPPool[]>([]);
   const [ous, setOus] = useState<OrganizationUnit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -374,11 +374,15 @@ export function IPPoolManager() {
           </div>
         ) : (
           filteredPools.map((pool) => (
-            <div key={pool.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow group">
+            <div 
+              key={pool.id} 
+              onClick={() => onViewStatus?.(pool.id!)}
+              className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all group cursor-pointer"
+            >
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
                   <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-bold text-gray-900">
+                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                       {pool.name} ({pool.startIP} - {pool.endIP})
                     </h3>
                     <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs font-bold rounded uppercase">

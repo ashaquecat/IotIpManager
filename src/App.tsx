@@ -8,6 +8,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('ippools');
+  const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null);
 
   // Mock user for demo mode
   const demoUser = {
@@ -17,11 +18,20 @@ export default function App() {
     uid: 'demo-user-id'
   } as any;
 
+  const handleViewPoolStatus = (poolId: string) => {
+    setSelectedPoolId(poolId);
+    setActiveTab('ipstatus');
+  };
+
   return (
     <ErrorBoundary>
       <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={demoUser}>
-        {activeTab === 'ippools' && <IPPoolManager />}
-        {activeTab === 'ipstatus' && <IPStatusViewer />}
+        {activeTab === 'ippools' && (
+          <IPPoolManager onViewStatus={handleViewPoolStatus} />
+        )}
+        {activeTab === 'ipstatus' && (
+          <IPStatusViewer initialPoolId={selectedPoolId} />
+        )}
         {activeTab === 'accounts' && <AccountManager />}
         {activeTab === 'ou' && <OrganizationUnitManager />}
       </Layout>

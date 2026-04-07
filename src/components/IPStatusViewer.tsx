@@ -7,10 +7,10 @@ import { Search, Filter, Download, UserPlus, UserMinus, ChevronLeft, ChevronRigh
 import * as XLSX from 'xlsx';
 import { Modal } from './Modal';
 
-export function IPStatusViewer() {
+export function IPStatusViewer({ initialPoolId }: { initialPoolId?: string | null }) {
   const [pools, setPools] = useState<IPPool[]>([]);
   const [ous, setOus] = useState<OrganizationUnit[]>([]);
-  const [selectedPoolId, setSelectedPoolId] = useState<string>('');
+  const [selectedPoolId, setSelectedPoolId] = useState<string>(initialPoolId || '');
   const [ipAddresses, setIpAddresses] = useState<IPAddress[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchIp, setSearchIp] = useState('');
@@ -29,7 +29,13 @@ export function IPStatusViewer() {
         const poolsSnapshot = await getDocs(collection(db, 'ipPools'));
         const fetchedPools = poolsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as IPPool));
         setPools(fetchedPools);
-        if (fetchedPools.length > 0) setSelectedPoolId(fetchedPools[0].id!);
+        
+        // If initialPoolId is provided, use it. Otherwise use the first pool.
+        if (initialPoolId) {
+          setSelectedPoolId(initialPoolId);
+        } else if (fetchedPools.length > 0 && !selectedPoolId) {
+          setSelectedPoolId(fetchedPools[0].id!);
+        }
 
         const ousSnapshot = await getDocs(collection(db, 'organizationUnits'));
         const fetchedOus = ousSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as OrganizationUnit));
@@ -39,7 +45,7 @@ export function IPStatusViewer() {
       }
     };
     fetchData();
-  }, []);
+  }, [initialPoolId]);
 
   useEffect(() => {
     if (selectedPoolId) {
@@ -196,14 +202,6 @@ export function IPStatusViewer() {
           </div>
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded text-xs font-medium text-gray-600">
-              <div className="w-3 h-3 bg-gray-400 rounded-sm"></div>
-              静态分配
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded text-xs font-medium text-gray-600">
-              <div className="w-3 h-3 bg-yellow-400 rounded-sm"></div>
-              网关地址
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded text-xs font-medium text-gray-600">
               <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
               正在使用
             </div>
@@ -237,17 +235,14 @@ export function IPStatusViewer() {
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {ipAddresses.map((ip) => {
-              const isGateway = selectedPool?.gatewayIP === ip.ip;
               const isUsed = ip.status === 'used';
-              
-              let bgColor = isUsed ? 'bg-green-500' : 'bg-red-500';
-              if (isGateway) bgColor = 'bg-yellow-400';
+              const bgColor = isUsed ? 'bg-green-500' : 'bg-red-500';
               
               return (
                 <div
                   key={ip.id}
                   onClick={() => toggleSelect(ip.id!)}
-                  title={`${ip.ip}${isGateway ? ' (网关)' : ''}`}
+                  title={ip.ip}
                   className={`
                     w-8 h-8 flex items-center justify-center rounded text-[10px] font-mono font-bold text-white cursor-pointer transition-all
                     ${bgColor}

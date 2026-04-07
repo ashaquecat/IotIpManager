@@ -1,6 +1,5 @@
 import React, { ReactNode } from 'react';
-import { LayoutDashboard, Database, Users, Building2, LogOut, User as UserIcon } from 'lucide-react';
-import { auth } from '../firebase';
+import { LayoutDashboard, Database, Users, Building2, User as UserIcon } from 'lucide-react';
 import { User } from 'firebase/auth';
 
 interface LayoutProps {
@@ -47,22 +46,15 @@ export function Layout({ children, activeTab, setActiveTab, user }: LayoutProps)
         </nav>
 
         <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center gap-3 px-4 py-3 mb-2">
+          <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 rounded-lg">
             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
               <UserIcon className="w-5 h-5 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{user.displayName || '用户'}</p>
-              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+              <p className="text-sm font-bold text-blue-700 truncate">演示模式</p>
+              <p className="text-xs text-blue-500 truncate">无需登录即可访问</p>
             </div>
           </div>
-          <button
-            onClick={() => auth.signOut()}
-            className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            退出登录
-          </button>
         </div>
       </aside>
 

@@ -16,8 +16,29 @@ export function IPStatusViewer({ initialPoolId }: { initialPoolId?: string | nul
   const [searchIp, setSearchIp] = useState('');
   const [selectedIps, setSelectedIps] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(512); // Show entire pool (max 512 for now)
   const [totalCount, setTotalCount] = useState(0);
+
+  // Grouping logic
+  const groupedIps = ipAddresses.reduce((acc, ip) => {
+    const parts = ip.ip.split('.');
+    const prefix = parts.slice(0, 3).join('.');
+    if (!acc[prefix]) acc[prefix] = [];
+    acc[prefix].push(ip);
+    return acc;
+  }, {} as Record<string, IPAddress[]>);
+
+  const prefixes = Object.keys(groupedIps).sort((a, b) => {
+    const aParts = a.split('.').map(Number);
+    const bParts = b.split('.').map(Number);
+    for (let i = 0; i < 3; i++) {
+      if (aParts[i] !== bParts[i]) return aParts[i] - bParts[i];
+    }
+    return 0;
+  });
+
+  const currentPrefix = prefixes[currentPage - 1];
+  const currentIps = currentPrefix ? groupedIps[currentPrefix] : [];
+  const totalPages = prefixes.length;
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -62,23 +83,25 @@ export function IPStatusViewer({ initialPoolId }: { initialPoolId?: string | nul
         orderBy('ip')
       );
 
-      // Simple search filter
       const snapshot = await getDocs(q);
       let allIps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as IPAddress));
       
       // Sort numerically by IP
-      allIps.sort((a, b) => ipToLong(a.ip) - ipToLong(b.ip));
+      allIps.sort((a, b) => {
+        const aParts = a.ip.split('.').map(Number);
+        const bParts = b.ip.split('.').map(Number);
+        for (let i = 0; i < 4; i++) {
+          if (aParts[i] !== bParts[i]) return aParts[i] - bParts[i];
+        }
+        return 0;
+      });
       
       if (searchIp) {
         allIps = allIps.filter(ip => ip.ip.includes(searchIp));
       }
 
       setTotalCount(allIps.length);
-      
-      // Manual pagination
-      const start = (currentPage - 1) * pageSize;
-      const paginatedIps = allIps.slice(start, start + pageSize);
-      setIpAddresses(paginatedIps);
+      setIpAddresses(allIps);
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, 'ipAddresses');
     } finally {
@@ -124,10 +147,10 @@ export function IPStatusViewer({ initialPoolId }: { initialPoolId?: string | nul
   };
 
   const toggleSelectAll = () => {
-    if (selectedIps.length === ipAddresses.length) {
+    if (selectedIps.length === currentIps.length) {
       setSelectedIps([]);
     } else {
-      setSelectedIps(ipAddresses.map(ip => ip.id!));
+      setSelectedIps(currentIps.map(ip => ip.id!));
     }
   };
 
@@ -216,16 +239,43 @@ export function IPStatusViewer({ initialPoolId }: { initialPoolId?: string | nul
           <label className="flex items-center gap-2 cursor-pointer group">
             <input
               type="checkbox"
-              checked={selectedIps.length === ipAddresses.length && ipAddresses.length > 0}
+              checked={selectedIps.length === currentIps.length && currentIps.length > 0}
               onChange={toggleSelectAll}
               className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
             />
-            <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">全选当前地址段</span>
+            <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">全选当前页</span>
           </label>
           <div className="h-4 w-px bg-gray-200"></div>
           <span className="text-sm text-gray-500">
             已选择 <span className="font-bold text-blue-600">{selectedIps.length}</span> 个 IP
           </span>
+          
+          {totalPages > 1 && (
+            <div className="ml-auto flex items-center gap-4">
+              <div className="text-sm text-gray-500">
+                网段: <span className="font-mono font-bold text-blue-600">{currentPrefix}.*</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <span className="text-sm font-medium text-gray-700 min-w-[60px] text-center">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -234,7 +284,7 @@ export function IPStatusViewer({ initialPoolId }: { initialPoolId?: string | nul
           </div>
         ) : (
           <div className="flex flex-wrap gap-1.5">
-            {ipAddresses.map((ip) => {
+            {currentIps.map((ip) => {
               const isUsed = ip.status === 'used';
               const bgColor = isUsed ? 'bg-green-500' : 'bg-red-500';
               

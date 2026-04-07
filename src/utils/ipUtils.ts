@@ -15,10 +15,20 @@ export function calculateUsableIPs(startIP: string, endIP: string, gatewayIP: st
   const start = ipToLong(startIP);
   const end = ipToLong(endIP);
   const gateway = ipToLong(gatewayIP);
-  const mask = ipToLong(subnetMask);
   
-  const network = (start & mask) >>> 0;
-  const broadcast = (network | (~mask >>> 0)) >>> 0;
+  // Based on user requirement: 
+  // The first .0 in the range's first C-block is the network address.
+  // The last .255 in the range's last C-block is the broadcast address.
+  // This handles ranges like 192.168.1.2 - 192.168.2.254 where 1.0 is network and 2.255 is broadcast.
+  
+  const startParts = startIP.split('.');
+  const endParts = endIP.split('.');
+  
+  const networkIP = `${startParts[0]}.${startParts[1]}.${startParts[2]}.0`;
+  const broadcastIP = `${endParts[0]}.${endParts[1]}.${endParts[2]}.255`;
+  
+  const network = ipToLong(networkIP);
+  const broadcast = ipToLong(broadcastIP);
   
   const ips: string[] = [];
   for (let i = start; i <= end; i++) {

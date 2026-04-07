@@ -405,7 +405,8 @@ export function IPPoolManager({ onViewStatus }: { onViewStatus?: (id: string) =>
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setEditingPool(pool);
                       setFormData(pool);
                       setIsAdding(true);
@@ -417,7 +418,10 @@ export function IPPoolManager({ onViewStatus }: { onViewStatus?: (id: string) =>
                     <Edit2 className="w-5 h-5" />
                   </button>
                   <button
-                    onClick={() => handleDelete(pool.id!)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(pool.id!);
+                    }}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="删除地址池"
                   >

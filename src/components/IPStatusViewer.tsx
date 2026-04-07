@@ -16,7 +16,7 @@ export function IPStatusViewer() {
   const [searchIp, setSearchIp] = useState('');
   const [selectedIps, setSelectedIps] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(100);
+  const [pageSize] = useState(512); // Show entire pool (max 512 for now)
   const [totalCount, setTotalCount] = useState(0);
 
   // Modal state
@@ -183,32 +183,51 @@ export function IPStatusViewer() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selectedIps.length === ipAddresses.length && ipAddresses.length > 0}
-                onChange={toggleSelectAll}
-                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-              />
-              <span className="text-sm font-medium text-gray-700">全选本页</span>
-            </label>
-            <span className="text-sm text-gray-500">
-              已选择 {selectedIps.length} 个 IP
-            </span>
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              当前显示：
+              <span className="text-gray-400 font-mono ml-2">
+                {selectedPool ? `${selectedPool.startIP} -- ${selectedPool.endIP}` : '未选择地址池'}
+              </span>
+            </h3>
           </div>
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <span className="text-gray-600">未使用</span>
+          <div className="flex flex-wrap gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded text-xs font-medium text-gray-600">
+              <div className="w-3 h-3 bg-gray-400 rounded-sm"></div>
+              静态分配
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="text-gray-600">已使用</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded text-xs font-medium text-gray-600">
+              <div className="w-3 h-3 bg-yellow-400 rounded-sm"></div>
+              网关地址
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded text-xs font-medium text-gray-600">
+              <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
+              正在使用
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded text-xs font-medium text-gray-600">
+              <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
+              未使用
             </div>
           </div>
+        </div>
+
+        <div className="flex items-center gap-4 mb-6 pb-4 border-b border-gray-100">
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={selectedIps.length === ipAddresses.length && ipAddresses.length > 0}
+              onChange={toggleSelectAll}
+              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+            />
+            <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">全选当前地址段</span>
+          </label>
+          <div className="h-4 w-px bg-gray-200"></div>
+          <span className="text-sm text-gray-500">
+            已选择 <span className="font-bold text-blue-600">{selectedIps.length}</span> 个 IP
+          </span>
         </div>
 
         {loading ? (
@@ -216,59 +235,31 @@ export function IPStatusViewer() {
             <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
           </div>
         ) : (
-          <div className="p-4 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2">
-            {ipAddresses.map((ip) => (
-              <div
-                key={ip.id}
-                onClick={() => toggleSelect(ip.id!)}
-                className={`relative p-2 rounded-lg border transition-all cursor-pointer group ${
-                  selectedIps.includes(ip.id!)
-                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                    : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <div className={`w-1.5 h-1.5 rounded-full absolute top-1 right-1 ${
-                    ip.status === 'unused' ? 'bg-red-500' : 'bg-green-500'
-                  }`}></div>
-                  <span className="text-[11px] font-mono font-bold text-gray-800">
-                    {ip.ip.split('.').pop()}
-                  </span>
-                  <span className="text-[9px] text-gray-400 font-mono leading-none">
-                    {ip.ip}
-                  </span>
+          <div className="flex flex-wrap gap-1.5">
+            {ipAddresses.map((ip) => {
+              const isGateway = selectedPool?.gatewayIP === ip.ip;
+              const isUsed = ip.status === 'used';
+              
+              let bgColor = isUsed ? 'bg-green-500' : 'bg-red-500';
+              if (isGateway) bgColor = 'bg-yellow-400';
+              
+              return (
+                <div
+                  key={ip.id}
+                  onClick={() => toggleSelect(ip.id!)}
+                  title={`${ip.ip}${isGateway ? ' (网关)' : ''}`}
+                  className={`
+                    w-8 h-8 flex items-center justify-center rounded text-[10px] font-mono font-bold text-white cursor-pointer transition-all
+                    ${bgColor}
+                    ${selectedIps.includes(ip.id!) ? 'ring-2 ring-offset-2 ring-blue-500 scale-110 z-10' : 'hover:opacity-80'}
+                  `}
+                >
+                  {ip.ip.split('.').pop()}
                 </div>
-                {selectedIps.includes(ip.id!) && (
-                  <div className="absolute -top-1.5 -left-1.5 bg-blue-600 text-white rounded-full p-0.5 shadow-sm">
-                    <CheckCircle2 className="w-3 h-3" />
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
-
-        <div className="p-4 border-t border-gray-200 flex justify-between items-center bg-gray-50">
-          <p className="text-sm text-gray-500">
-            显示第 {Math.min((currentPage - 1) * pageSize + 1, totalCount)} 至 {Math.min(currentPage * pageSize, totalCount)} 条，共 {totalCount} 个 IP
-          </p>
-          <div className="flex gap-2">
-            <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(p => p - 1)}
-              className="p-2 border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              disabled={currentPage * pageSize >= totalCount}
-              onClick={() => setCurrentPage(p => p + 1)}
-              className="p-2 border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
       </div>
 
       <Modal
